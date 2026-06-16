@@ -4,6 +4,7 @@ metadata:
   name: go-web-app
   labels:
     app: go-web-app
+    env: {{ .Values.env }}
 spec:
   ports:
   - port: 80

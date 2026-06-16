@@ -4,6 +4,8 @@
 
 replicaCount: 1
 
+env: dev
+
 image:
   repository: rajdev0ps/go-web-app
   pullPolicy: IfNotPresent

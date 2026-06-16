@@ -2,6 +2,9 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: go-web-app
+  labels:
+    app: go-web-app
+    env: {{ .Values.env }}
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
