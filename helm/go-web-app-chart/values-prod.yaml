@@ -8,3 +8,6 @@ image:
   repository: rajdev0ps/go-web-app
   pullPolicy: IfNotPresent
   tag: "prod-41d7f02"
+
+ingress:
+  host: prod.go-web-app.local
