@@ -1,0 +1,10 @@
+# Prod environment overrides. Apply on top of values.yaml:
+#   helm upgrade --install go-web-app ./helm/go-web-app-chart -f values.yaml -f values-prod.yaml
+# image.tag below is auto-updated by CI on every push to the 'main' branch.
+
+env: prod
+
+image:
+  repository: rajdev0ps/go-web-app
+  pullPolicy: IfNotPresent
+  tag: "prod-0000000"

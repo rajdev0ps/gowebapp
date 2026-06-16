@@ -27,15 +27,22 @@ Routes: `/home`, `/courses`, `/about`, `/contact` — each maps directly to a fi
 
 ## Deployment / CI-CD (important — multiple Helm/k8s dirs, easy to confuse)
 
-- **`helm/go-web-app-chart/`** — the chart actually used in production deploys. Its `values.yaml` `image.tag` is auto-updated by CI on every push to `main` (see below). Don't hand-edit the `tag` field; it gets overwritten by the pipeline.
+- **`helm/go-web-app-chart/`** — the chart actually used for deploys. `values.yaml` holds shared defaults (`replicaCount`, `image.repository`, `image.pullPolicy`); `values-dev.yaml` and `values-prod.yaml` are per-environment overlays holding `env` and `image.tag`, applied with `-f values.yaml -f values-<env>.yaml`. CI auto-updates the `image.tag` field in the matching overlay file on every push (see below) — don't hand-edit `image.tag` in those overlays, it gets overwritten by the pipeline.
 - **`fresh-helm-config/`** — a separate, unrelated scaffold chart (still has placeholder `nginx` image, gateway-api `httpRoute`, etc.). Not wired into CI. Treat as a template/reference, not the deployed chart.
 - **`k8s/manifests/`** — raw Kubernetes YAML (Deployment/Service/Ingress), pinned to a fixed `v1` image tag. Separate from the Helm-based flow; not updated by CI.
 
-### `.github/workflows/ci.yaml` pipeline (triggers on push to `main`, ignores changes under `helm/**`, `k8s/**`, `README.md`)
+### Branch → environment → image tag
 
-1. `build` — `go build` + `go test ./...`
-2. `code-quality` — `golangci-lint`
-3. `push` (needs build + code-quality) — builds the Docker image and pushes to Docker Hub as `<DOCKERHUB_USERNAME>/go-web-app:<github.run_id>`
-4. `update-newtag-in-helm-chart` (needs push) — `sed`-replaces the `tag:` line in `helm/go-web-app-chart/values.yaml` with the new run ID and commits/pushes that change back to `main` using the `TOKEN` secret
+- `dev` branch → `env=dev`, image tag `dev-<7-char-commit-sha>`, updates `helm/go-web-app-chart/values-dev.yaml`.
+- `main` branch → `env=prod`, image tag `prod-<7-char-commit-sha>`, updates `helm/go-web-app-chart/values-prod.yaml`.
+- The tag embeds the commit SHA (not a run ID) specifically so a deployed image can be traced back to the exact commit via `git show <sha>` or `git log --all --grep`.
 
-This means: every app code push triggers a second, automated commit updating the Helm chart's image tag. Because the workflow ignores `helm/**` paths in its trigger, that auto-commit does not retrigger the pipeline (avoids an infinite loop).
+### `.github/workflows/ci.yaml` pipeline (triggers on push to `main` or `dev`, ignores changes under `helm/**`, `k8s/**`, `README.md`)
+
+1. `setup` — derives `environment` (`dev`/`prod`), `image_tag` (`<env>-<short-sha>`), and `values_file` (`values-<env>.yaml`) from `github.ref_name`; exposed as job outputs for downstream jobs.
+2. `build` — `go build` + `go test ./...`
+3. `code-quality` — `golangci-lint`
+4. `push` (needs setup + build + code-quality) — builds the Docker image and pushes to Docker Hub as `<DOCKERHUB_USERNAME>/go-web-app:<env>-<short-sha>`
+5. `update-newtag-in-helm-chart` (needs setup + push) — `sed`-replaces the `tag:` line in the environment's overlay (`values-dev.yaml` or `values-prod.yaml`) with the new image tag and commits/pushes that change back to the same branch using the `TOKEN` secret
+
+This means: every app code push triggers a second, automated commit updating that environment's Helm overlay. Because the workflow ignores `helm/**` paths in its trigger, that auto-commit does not retrigger the pipeline (avoids an infinite loop).

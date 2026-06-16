@@ -1,0 +1,10 @@
+# Dev environment overrides. Apply on top of values.yaml:
+#   helm upgrade --install go-web-app ./helm/go-web-app-chart -f values.yaml -f values-dev.yaml
+# image.tag below is auto-updated by CI on every push to the 'dev' branch.
+
+env: dev
+
+image:
+  repository: rajdev0ps/go-web-app
+  pullPolicy: IfNotPresent
+  tag: "dev-0000000"
