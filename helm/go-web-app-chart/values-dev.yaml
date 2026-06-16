@@ -7,4 +7,4 @@ env: dev
 image:
   repository: rajdev0ps/go-web-app
   pullPolicy: IfNotPresent
-  tag: "dev-e7ea54d"
+  tag: "dev-a4330a1"
