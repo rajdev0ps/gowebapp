@@ -7,4 +7,4 @@ env: prod
 image:
   repository: rajdev0ps/go-web-app
   pullPolicy: IfNotPresent
-  tag: "prod-12b8424"
+  tag: "prod-41d7f02"
